@@ -113,9 +113,13 @@ class TimerService : Service() {
     }
 
     fun stopTimerSession() {
-        _isTimerRunning.value = false
         timerJob?.cancel()
+        _isTimerRunning.value = false
+
+        // Remove the persistent notification and stop foreground mode
         stopForeground(STOP_FOREGROUND_REMOVE)
+
+        // Explicitly tell the service to shut down entirely
         stopSelf()
     }
 

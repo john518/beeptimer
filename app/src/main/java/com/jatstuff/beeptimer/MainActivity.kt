@@ -72,9 +72,8 @@ class MainActivity : ComponentActivity() {
                     intervalSeconds = selectedIntervalSeconds,
                     currentCheckpoint = checkpoint,
                     onEndClicked = {
-                        // Stop the service from running
-                        val stopIntent = Intent(this@MainActivity, TimerService::class.java)
-                        stopService(stopIntent)
+                        // Tell the service to shut down its session and stop itself
+                        timerService?.stopTimerSession()
                     }
                 )
             } else {
