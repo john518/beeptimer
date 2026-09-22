@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.jatstuff.beeptimer.MainActivity
+import com.jatstuff.beeptimer.audio.TonePlayer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class TimerService : Service() {
 
+    private val tonePlayer = TonePlayer()
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var timerJob: Job? = null
 
@@ -94,7 +96,10 @@ class TimerService : Service() {
                     _currentCheckpoint.value = checkpointIndex
 
                     // TODO: Trigger Audio / Tone Burst + TTS here!
-                    triggerAudioCue(checkpointIndex)
+                    // Trigger the tone bursts asynchronously inside the service scope
+                    launch {
+                        tonePlayer.playToneBursts(checkpointIndex)
+                    }
                 }
             }
 
@@ -127,6 +132,7 @@ class TimerService : Service() {
     }
 
     override fun onDestroy() {
+        tonePlayer.release()
         serviceScope.cancel()
         super.onDestroy()
     }
