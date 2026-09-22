@@ -131,6 +131,13 @@ class TimerService : Service() {
         }
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        // Ensure state always starts fresh when the service system creates it
+        _isTimerRunning.value = false
+        _currentCheckpoint.value = 0
+    }
+
     override fun onDestroy() {
         tonePlayer.release()
         serviceScope.cancel()
