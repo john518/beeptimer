@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.beeptimer"
+    namespace = "com.jatstuff.beeptimer"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.beeptimer"
+        applicationId = "com.jatstuff.beeptimer"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

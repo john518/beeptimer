@@ -1,4 +1,4 @@
-package com.example.beeptimer
+package com.jatstuff.beeptimer
 
 import org.junit.Test
 

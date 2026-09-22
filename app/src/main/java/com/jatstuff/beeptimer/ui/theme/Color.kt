@@ -1,4 +1,4 @@
-package com.example.beeptimer.ui.theme
+package com.jatstuff.beeptimer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

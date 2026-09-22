@@ -1,4 +1,4 @@
-package com.example.beeptimer
+package com.jatstuff.beeptimer
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.beeptimer.ui.theme.BeepTimerTheme
+import com.jatstuff.beeptimer.ui.theme.BeepTimerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
