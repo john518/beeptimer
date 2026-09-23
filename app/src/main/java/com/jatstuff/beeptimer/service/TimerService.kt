@@ -10,7 +10,9 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.jatstuff.beeptimer.MainActivity
+import com.jatstuff.beeptimer.R
 import com.jatstuff.beeptimer.audio.TonePlayer
+import com.jatstuff.beeptimer.audio.TtsPlayer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +22,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class TimerService : Service() {
 
     private val tonePlayer = TonePlayer()
+    private lateinit var ttsPlayer: TtsPlayer
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var timerJob: Job? = null
 
@@ -38,8 +41,6 @@ class TimerService : Service() {
     private val _isTimerRunning = MutableStateFlow(false)
     val isTimerRunning: StateFlow<Boolean> = _isTimerRunning.asStateFlow()
 
-    // Singleton-like accessor pattern or Binder approach can be used to hook UI to Service.
-    // For simplicity, we can use a local binder or static instance reference for local binding.
     inner class LocalBinder : android.os.Binder() {
         fun getService(): TimerService = this@TimerService
     }
@@ -54,7 +55,7 @@ class TimerService : Service() {
 
         if (!_isTimerRunning.value) {
             startForegroundServiceWithNotification()
-            startTimer(durationMinutes * 60, intervalSeconds)
+            startTimer(durationMinutes, intervalSeconds)
         }
 
         return START_NOT_STICKY
@@ -72,7 +73,7 @@ class TimerService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("BeepTimer Active")
             .setContentText("Stretching session in progress...")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // Replace with your custom app icon later
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
@@ -80,12 +81,17 @@ class TimerService : Service() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
-    private fun startTimer(totalSeconds: Int, intervalSeconds: Int) {
+    private fun startTimer(durationMinutes: Int, intervalSeconds: Int) {
+        val totalSeconds = durationMinutes * 60
+        val messagesArrayResId = getMessageArrayResId(durationMinutes)
+        val messagesArray = resources.getStringArray(messagesArrayResId)
+
         _isTimerRunning.value = true
         _currentCheckpoint.value = 0
 
         timerJob = serviceScope.launch {
             var elapsedSeconds = 0
+            var lastAudioJob: Job? = null
 
             while (elapsedSeconds < totalSeconds && _isTimerRunning.value) {
                 delay(1000L.milliseconds) // Wait exactly 1 second
@@ -95,21 +101,35 @@ class TimerService : Service() {
                     val checkpointIndex = elapsedSeconds / intervalSeconds
                     _currentCheckpoint.value = checkpointIndex
 
-                    // TODO: Trigger Audio / Tone Burst + TTS here!
-                    // Trigger the tone bursts asynchronously inside the service scope
-                    launch {
+                    val message = messagesArray.getOrNull(checkpointIndex - 1)
+                        ?: "Checkpoint $checkpointIndex"
+
+                    // Trigger tone burst + text-to-speech
+                    lastAudioJob = launch {
                         tonePlayer.playToneBursts(checkpointIndex)
+                        ttsPlayer.speakAndWait(message)
                     }
                 }
             }
+
+            // Wait for the final audio cue (tone + TTS) to finish playing out
+            lastAudioJob?.join()
+
+            // Brief pause so audio ends naturally before resetting session
+            delay(500L.milliseconds)
 
             // Timer completed naturally
             stopTimerSession()
         }
     }
 
-    private fun triggerAudioCue(checkpointIndex: Int) {
-        // We will wire up the Audio/TTS manager here next.
+    private fun getMessageArrayResId(durationMinutes: Int): Int {
+        return when (durationMinutes) {
+            1 -> R.array.messages_1min
+            2 -> R.array.messages_2min
+            6 -> R.array.messages_6min
+            else -> R.array.messages_1min
+        }
     }
 
     fun stopTimerSession() {
@@ -137,13 +157,16 @@ class TimerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        // Ensure state always starts fresh when the service system creates it
         _isTimerRunning.value = false
         _currentCheckpoint.value = 0
+        ttsPlayer = TtsPlayer(this)
     }
 
     override fun onDestroy() {
         tonePlayer.release()
+        if (::ttsPlayer.isInitialized) {
+            ttsPlayer.release()
+        }
         serviceScope.cancel()
         super.onDestroy()
     }

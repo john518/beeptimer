@@ -1,3 +1,33 @@
 <resources>
     <string name="app_name">BeepTimer</string>
+
+    <!-- 1 Minute Session Messages (10-second intervals) -->
+    <string-array name="messages_1min">
+        <item>Ten</item>
+        <item>Twenty</item>
+        <item>Thirty</item>
+        <item>Forty</item>
+        <item>Fifty</item>
+        <item>Sixty Seconds. Done.</item>
+    </string-array>
+
+    <!-- 2 Minute Session Messages (20-second intervals) -->
+    <string-array name="messages_2min">
+        <item>20 seconds</item>
+        <item>40 seconds</item>
+        <item>One minute</item>
+        <item>One minute 20 seconds</item>
+        <item>One minute 40 seconds</item>
+        <item>Two minutes. Done.</item>
+    </string-array>
+
+    <!-- 6 Minute Session Messages (60-second intervals) -->
+    <string-array name="messages_6min">
+        <item>One minute</item>
+        <item>Two minutes</item>
+        <item>Three minutes</item>
+        <item>Four minutes</item>
+        <item>Five minutes</item>
+        <item>Six minutes. Done.</item>
+    </string-array>
 </resources>
