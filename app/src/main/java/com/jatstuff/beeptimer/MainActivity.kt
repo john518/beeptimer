@@ -1,7 +1,6 @@
 package com.jatstuff.beeptimer
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
@@ -12,6 +11,8 @@ import androidx.compose.runtime.*
 import com.jatstuff.beeptimer.service.TimerService
 import com.jatstuff.beeptimer.ui.ActiveTimerScreen
 import com.jatstuff.beeptimer.ui.DurationSelectionScreen
+import com.jatstuff.beeptimer.ui.theme.BeepTimerTheme
+
 // import com.jatstuff.beeptimer.ui.theme.BeepTimerTheme // Uncomment once your theme is set up
 
 class MainActivity : ComponentActivity() {
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         // Bind to the service if it's already running in the background
         Intent(this, TimerService::class.java).also { intent ->
-            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            bindService(intent, connection, BIND_AUTO_CREATE)
         }
     }
 
@@ -58,40 +59,40 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // BeepTimerTheme { // Wrap with your theme
-            // Simple condition: Check if service says timer is running
-            val isRunning by timerService?.isTimerRunning?.collectAsState(initial = false)
-                ?: remember { mutableStateOf(false) }
+            BeepTimerTheme {
+                // Simple condition: Check if service says timer is running
+                val isRunning by timerService?.isTimerRunning?.collectAsState(initial = false)
+                    ?: remember { mutableStateOf(false) }
 
-            val checkpoint by timerService?.currentCheckpoint?.collectAsState(initial = 0)
-                ?: remember { mutableIntStateOf(0) }
+                val checkpoint by timerService?.currentCheckpoint?.collectAsState(initial = 0)
+                    ?: remember { mutableIntStateOf(0) }
 
-            if (isRunning) {
-                ActiveTimerScreen(
-                    durationMinutes = selectedMinutes,
-                    intervalSeconds = selectedIntervalSeconds,
-                    currentCheckpoint = checkpoint,
-                    onEndClicked = {
-                        // Tell the service to shut down its session and stop itself
-                        timerService?.stopTimerSession()
-                    }
-                )
-            } else {
-                DurationSelectionScreen(
-                    onDurationSelected = { minutes, interval ->
-                        selectedMinutes = minutes
-                        selectedIntervalSeconds = interval
-
-                        // Start the Foreground Service
-                        val intent = Intent(this@MainActivity, TimerService::class.java).apply {
-                            putExtra(TimerService.EXTRA_DURATION_MINUTES, minutes)
-                            putExtra(TimerService.EXTRA_INTERVAL_SECONDS, interval)
+                if (isRunning) {
+                    ActiveTimerScreen(
+                        durationMinutes = selectedMinutes,
+                        intervalSeconds = selectedIntervalSeconds,
+                        currentCheckpoint = checkpoint,
+                        onEndClicked = {
+                            // Tell the service to shut down its session and stop itself
+                            timerService?.stopTimerSession()
                         }
-                        startForegroundService(intent)
-                    }
-                )
-            }
-            // }
-        }
-    }
-}
+                    )
+                } else {
+                    DurationSelectionScreen(
+                        onDurationSelected = { minutes, interval ->
+                            selectedMinutes = minutes
+                            selectedIntervalSeconds = interval
+
+                            // Start the Foreground Service
+                            val intent = Intent(this@MainActivity, TimerService::class.java).apply {
+                                putExtra(TimerService.EXTRA_DURATION_MINUTES, minutes)
+                                putExtra(TimerService.EXTRA_INTERVAL_SECONDS, interval)
+                            }
+                            startForegroundService(intent)
+                        }
+                    )
+                }  // else (DurationSelectionScreen)
+            }  // BeepTimerTheme
+        }  // setContent()
+    }  // onCreate()
+}  // MainActivity
