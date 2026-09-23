@@ -32,6 +32,7 @@ class TimerService : Service() {
 
         const val EXTRA_DURATION_MINUTES = "extra_duration_minutes"
         const val EXTRA_INTERVAL_SECONDS = "extra_interval_seconds"
+        const val EXTRA_VOICE_ENABLED = "extra_voice_enabled"
     }
 
     // Expose state for the UI to observe
@@ -52,10 +53,11 @@ class TimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val durationMinutes = intent?.getIntExtra(EXTRA_DURATION_MINUTES, 1) ?: 1
         val intervalSeconds = intent?.getIntExtra(EXTRA_INTERVAL_SECONDS, 10) ?: 10
+        val voiceEnabled = intent?.getBooleanExtra(EXTRA_VOICE_ENABLED, true) ?: true
 
         if (!_isTimerRunning.value) {
             startForegroundServiceWithNotification()
-            startTimer(durationMinutes, intervalSeconds)
+            startTimer(durationMinutes, intervalSeconds, voiceEnabled)
         }
 
         return START_NOT_STICKY
@@ -81,7 +83,7 @@ class TimerService : Service() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
-    private fun startTimer(durationMinutes: Int, intervalSeconds: Int) {
+    private fun startTimer(durationMinutes: Int, intervalSeconds: Int, voiceEnabled: Boolean) {
         val totalSeconds = durationMinutes * 60
         val messagesArrayResId = getMessageArrayResId(durationMinutes)
         val messagesArray = resources.getStringArray(messagesArrayResId)
@@ -104,10 +106,12 @@ class TimerService : Service() {
                     val message = messagesArray.getOrNull(checkpointIndex - 1)
                         ?: "Checkpoint $checkpointIndex"
 
-                    // Trigger tone burst + text-to-speech
+                    // Trigger tone burst + optional text-to-speech
                     lastAudioJob = launch {
                         tonePlayer.playToneBursts(checkpointIndex)
-                        ttsPlayer.speakAndWait(message)
+                        if (voiceEnabled) {
+                            ttsPlayer.speakAndWait(message)
+                        }
                     }
                 }
             }

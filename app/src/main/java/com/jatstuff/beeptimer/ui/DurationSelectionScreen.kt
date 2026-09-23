@@ -3,6 +3,10 @@ package com.jatstuff.beeptimer.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -13,8 +17,10 @@ import com.jatstuff.beeptimer.ui.theme.BeepTimerTheme
 
 @Composable
 fun DurationSelectionScreen(
-    onDurationSelected: (durationMinutes: Int, intervalSeconds: Int) -> Unit
+    onDurationSelected: (durationMinutes: Int, intervalSeconds: Int, voiceEnabled: Boolean) -> Unit
 ) {
+    var voiceEnabled by remember { mutableStateOf(true) }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -38,14 +44,42 @@ fun DurationSelectionScreen(
                 text = "Select duration and cadence",
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 48.dp)
+                modifier = Modifier.padding(bottom = 24.dp)
             )
+
+            // Tone Burst & Voice Switch
+            Row(
+                modifier = Modifier
+                    .padding(bottom = 32.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Tone Burst",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+                Switch(
+                    checked = voiceEnabled,
+                    onCheckedChange = { voiceEnabled = it }
+                )
+
+                Text(
+                    text = "Tone Burst & Voice",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+
+            }
 
             // 1 Minute Option
             DurationButton(
                 title = "1 Minute",
                 subtitle = "Beeps every 10 seconds",
-                onClick = { onDurationSelected(1, 10) }
+                onClick = { onDurationSelected(1, 10, voiceEnabled) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -54,7 +88,7 @@ fun DurationSelectionScreen(
             DurationButton(
                 title = "2 Minutes",
                 subtitle = "Beeps every 20 seconds",
-                onClick = { onDurationSelected(2, 20) }
+                onClick = { onDurationSelected(2, 20, voiceEnabled) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -63,7 +97,7 @@ fun DurationSelectionScreen(
             DurationButton(
                 title = "6 Minutes",
                 subtitle = "Beeps every 60 seconds",
-                onClick = { onDurationSelected(6, 60) }
+                onClick = { onDurationSelected(6, 60, voiceEnabled) }
             )
         }
     }
@@ -104,7 +138,7 @@ fun DurationButton(
 fun DurationSelectionPreview() {
     BeepTimerTheme {
         DurationSelectionScreen(
-            onDurationSelected = { minutes, seconds ->
+            onDurationSelected = { _, _, _ ->
                 // Dummy action for preview purposes; does nothing when tapped in preview
             }
         )

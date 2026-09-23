@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
     // Keep track of chosen settings to pass to the active screen
     private var selectedMinutes by mutableIntStateOf(1)
     private var selectedIntervalSeconds by mutableIntStateOf(10)
+    private var selectedVoiceEnabled by mutableStateOf(true)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -79,14 +80,16 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     DurationSelectionScreen(
-                        onDurationSelected = { minutes, interval ->
+                        onDurationSelected = { minutes, interval, voiceEnabled ->
                             selectedMinutes = minutes
                             selectedIntervalSeconds = interval
+                            selectedVoiceEnabled = voiceEnabled
 
                             // Start the Foreground Service
                             val intent = Intent(this@MainActivity, TimerService::class.java).apply {
                                 putExtra(TimerService.EXTRA_DURATION_MINUTES, minutes)
                                 putExtra(TimerService.EXTRA_INTERVAL_SECONDS, interval)
+                                putExtra(TimerService.EXTRA_VOICE_ENABLED, voiceEnabled)
                             }
                             startForegroundService(intent)
                         }
