@@ -3,10 +3,6 @@ package com.jatstuff.beeptimer.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -17,10 +13,10 @@ import com.jatstuff.beeptimer.ui.theme.BeepTimerTheme
 
 @Composable
 fun DurationSelectionScreen(
+    voiceEnabled: Boolean,
+    onVoiceEnabledChanged: (Boolean) -> Unit,
     onDurationSelected: (durationMinutes: Int, intervalSeconds: Int, voiceEnabled: Boolean) -> Unit
 ) {
-    var voiceEnabled by remember { mutableStateOf(true) }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -63,7 +59,7 @@ fun DurationSelectionScreen(
                 )
                 Switch(
                     checked = voiceEnabled,
-                    onCheckedChange = { voiceEnabled = it }
+                    onCheckedChange = onVoiceEnabledChanged
                 )
 
                 Text(
@@ -138,6 +134,8 @@ fun DurationButton(
 fun DurationSelectionPreview() {
     BeepTimerTheme {
         DurationSelectionScreen(
+            voiceEnabled = true,
+            onVoiceEnabledChanged = {},
             onDurationSelected = { _, _, _ ->
                 // Dummy action for preview purposes; does nothing when tapped in preview
             }

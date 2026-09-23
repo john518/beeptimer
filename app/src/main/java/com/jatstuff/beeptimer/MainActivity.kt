@@ -80,6 +80,8 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     DurationSelectionScreen(
+                        voiceEnabled = selectedVoiceEnabled,
+                        onVoiceEnabledChanged = { selectedVoiceEnabled = it },
                         onDurationSelected = { minutes, interval, voiceEnabled ->
                             selectedMinutes = minutes
                             selectedIntervalSeconds = interval
