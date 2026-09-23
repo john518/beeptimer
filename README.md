@@ -5,6 +5,8 @@
 
 The BeepTimer phone application helps a user keep track of short time periods by issuing a brief tone burst and voice message at fixed intervals. This allows the user to track events without continuously staring at the device. This functionality is available in a few existing Android apps, but only as a small side feature as part of a very heavy app.
 
+> **Note:** BeepTimer does not provide pre-built APK downloads. To run the app, clone the repository and install it directly to your device or emulator using Android Studio.
+
 ## Basic Operation
 
 To use BeepTimer, the user starts by selecting a duration option, for example:
