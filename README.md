@@ -1,4 +1,5 @@
 # Beep Timer
+<img src="./app/src/main/ic_launcher-playstore.png" width="36" align="absmiddle" alt="BeepTimer Logo" />
 
 ## Brief Description
 
