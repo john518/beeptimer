@@ -19,3 +19,16 @@ At each fixed interval, the app issues a "burst" of tones (where the number of t
 If the user hits the "End" control, the timer is stopped, the app issues a concluding message ("Ending Timer"), and the app closes.
 
 When the duration time is reached, the app issues the final tone burst and a concluding voice message ("Timing Complete").
+
+<table>
+  <tr>
+    <td text-align="center">
+      <img src="./docs/images/BeepTimerStart.png" width="300" alt="Timer View">
+      <br><em>Duration Select</em>
+    </td>
+    <td text-align="center">
+      <img src="./docs/images/BeepTimerRun.png" width="300" alt="Settings View">
+      <br><em>Active Timer</em>
+    </td>
+  </tr>
+</table>
