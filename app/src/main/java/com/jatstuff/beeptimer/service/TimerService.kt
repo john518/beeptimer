@@ -6,25 +6,28 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.jatstuff.beeptimer.MainActivity
 import com.jatstuff.beeptimer.R
+import com.jatstuff.beeptimer.audio.AudioNotifier
+import com.jatstuff.beeptimer.audio.DefaultAudioNotifier
 import com.jatstuff.beeptimer.audio.TonePlayer
 import com.jatstuff.beeptimer.audio.TtsPlayer
+import com.jatstuff.beeptimer.timer.TimerEngine
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlin.time.Duration.Companion.milliseconds
 
 class TimerService : Service() {
 
     private val tonePlayer = TonePlayer()
     private lateinit var ttsPlayer: TtsPlayer
+    private lateinit var audioNotifier: AudioNotifier
+    private lateinit var timerEngine: TimerEngine
+
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private var timerJob: Job? = null
 
     companion object {
         const val NOTIFICATION_ID = 1001
@@ -35,14 +38,13 @@ class TimerService : Service() {
         const val EXTRA_VOICE_ENABLED = "extra_voice_enabled"
     }
 
-    // Expose state for the UI to observe
-    private val _currentCheckpoint = MutableStateFlow(0)
-    val currentCheckpoint: StateFlow<Int> = _currentCheckpoint.asStateFlow()
+    val currentCheckpoint: StateFlow<Int>
+        get() = timerEngine.currentCheckpoint
 
-    private val _isTimerRunning = MutableStateFlow(false)
-    val isTimerRunning: StateFlow<Boolean> = _isTimerRunning.asStateFlow()
+    val isTimerRunning: StateFlow<Boolean>
+        get() = timerEngine.isTimerRunning
 
-    inner class LocalBinder : android.os.Binder() {
+    inner class LocalBinder : Binder() {
         fun getService(): TimerService = this@TimerService
     }
 
@@ -50,14 +52,34 @@ class TimerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    override fun onCreate() {
+        super.onCreate()
+        ttsPlayer = TtsPlayer(this)
+        audioNotifier = DefaultAudioNotifier(tonePlayer, ttsPlayer)
+        timerEngine = TimerEngine(audioNotifier, serviceScope)
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val durationMinutes = intent?.getIntExtra(EXTRA_DURATION_MINUTES, 1) ?: 1
         val intervalSeconds = intent?.getIntExtra(EXTRA_INTERVAL_SECONDS, 10) ?: 10
         val voiceEnabled = intent?.getBooleanExtra(EXTRA_VOICE_ENABLED, true) ?: true
 
-        if (!_isTimerRunning.value) {
+        if (!timerEngine.isTimerRunning.value) {
             startForegroundServiceWithNotification()
-            startTimer(durationMinutes, intervalSeconds, voiceEnabled)
+
+            val messagesArrayResId = getMessageArrayResId(durationMinutes)
+            val messagesList = resources.getStringArray(messagesArrayResId).toList()
+
+            timerEngine.startTimer(
+                durationMinutes = durationMinutes,
+                intervalSeconds = intervalSeconds,
+                voiceEnabled = voiceEnabled,
+                messages = messagesList,
+                onCompleted = {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            )
         }
 
         return START_NOT_STICKY
@@ -83,50 +105,6 @@ class TimerService : Service() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
-    private fun startTimer(durationMinutes: Int, intervalSeconds: Int, voiceEnabled: Boolean) {
-        val totalSeconds = durationMinutes * 60
-        val messagesArrayResId = getMessageArrayResId(durationMinutes)
-        val messagesArray = resources.getStringArray(messagesArrayResId)
-
-        _isTimerRunning.value = true
-        _currentCheckpoint.value = 0
-
-        timerJob = serviceScope.launch {
-            var elapsedSeconds = 0
-            var lastAudioJob: Job? = null
-
-            while (elapsedSeconds < totalSeconds && _isTimerRunning.value) {
-                delay(1000L.milliseconds) // Wait exactly 1 second
-                elapsedSeconds++
-
-                if (elapsedSeconds % intervalSeconds == 0) {
-                    val checkpointIndex = elapsedSeconds / intervalSeconds
-                    _currentCheckpoint.value = checkpointIndex
-
-                    val message = messagesArray.getOrNull(checkpointIndex - 1)
-                        ?: "Checkpoint $checkpointIndex"
-
-                    // Trigger tone burst + optional text-to-speech
-                    lastAudioJob = launch {
-                        tonePlayer.playToneBursts(checkpointIndex)
-                        if (voiceEnabled) {
-                            ttsPlayer.speakAndWait(message)
-                        }
-                    }
-                }
-            }
-
-            // Wait for the final audio cue (tone + TTS) to finish playing out
-            lastAudioJob?.join()
-
-            // Brief pause so audio ends naturally before resetting session
-            delay(500L.milliseconds)
-
-            // Timer completed naturally
-            stopTimerSession()
-        }
-    }
-
     private fun getMessageArrayResId(durationMinutes: Int): Int {
         return when (durationMinutes) {
             1 -> R.array.messages_1min
@@ -137,13 +115,8 @@ class TimerService : Service() {
     }
 
     fun stopTimerSession() {
-        timerJob?.cancel()
-        _isTimerRunning.value = false
-
-        // Remove the persistent notification and stop foreground mode
+        timerEngine.stopTimer()
         stopForeground(STOP_FOREGROUND_REMOVE)
-
-        // Explicitly tell the service to shut down entirely
         stopSelf()
     }
 
@@ -159,14 +132,8 @@ class TimerService : Service() {
         }
     }
 
-    override fun onCreate() {
-        super.onCreate()
-        _isTimerRunning.value = false
-        _currentCheckpoint.value = 0
-        ttsPlayer = TtsPlayer(this)
-    }
-
     override fun onDestroy() {
+        timerEngine.stopTimer()
         tonePlayer.release()
         if (::ttsPlayer.isInitialized) {
             ttsPlayer.release()
